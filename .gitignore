@@ -1,0 +1,11 @@
+mnist
+/3party
+/.vs/
+/Build/
+*.png
+*.engine
+*.lib
+*.engine
+*.jpg
+*.log
+/TestServer/x64
