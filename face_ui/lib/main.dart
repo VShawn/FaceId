@@ -4,11 +4,13 @@
 
 import 'dart:async';
 
-import 'package:camera_platform_interface/camera_platform_interface.dart';
+import 'package:face_locker/camera_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:camera_platform_interface/camera_platform_interface.dart';
 import 'package:camera_windows/camera_windows.dart';
 import 'package:ffi/ffi.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:win32/win32.dart';
 
 void main() {
@@ -27,12 +29,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String _cameraInfo = 'Unknown';
   List<CameraDescription> _cameras = <CameraDescription>[];
-  int _cameraIndex = 0;
+  CameraDescription? _selectedCamera = null;
   int _cameraId = -1;
   bool _initialized = false;
-  bool _recording = false;
-  bool _recordingTimed = false;
-  bool _recordAudio = true;
   bool _previewPaused = false;
   Size? _previewSize;
   ResolutionPreset _resolutionPreset = ResolutionPreset.veryHigh;
@@ -43,7 +42,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     WidgetsFlutterBinding.ensureInitialized();
-    _fetchCameras();
+    SelectCamera(null);
   }
 
   @override
@@ -56,50 +55,66 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  /// Fetches list of available cameras from camera_windows plugin.
-  Future<void> _fetchCameras() async {
-    String cameraInfo;
+  Future<void> SelectCamera(String? selectedName) async {
+    if (selectedName == null) {
+      final prefs = await SharedPreferences.getInstance();
+      selectedName = prefs.getString('camera1');
+    }
+    String cameraInfo = "Unknown";
     List<CameraDescription> cameras = <CameraDescription>[];
-
-    int cameraIndex = 0;
     try {
       cameras = await CameraPlatform.instance.availableCameras();
       if (cameras.isEmpty) {
         cameraInfo = 'No available cameras';
-      } else {
-        cameraIndex = _cameraIndex % cameras.length;
-        cameraInfo = 'Found camera: ${cameras[cameraIndex].name}';
       }
     } on PlatformException catch (e) {
       cameraInfo = 'Failed to get cameras: ${e.code}: ${e.message}';
     }
 
-    if (mounted) {
-      setState(() {
-        _cameraIndex = cameraIndex;
-        _cameras = cameras;
-        _cameraInfo = cameraInfo;
-      });
+    // 从 _cameras 中查找 name 和 selected.name 相同的相机的索引
+    if (cameras.isNotEmpty) {
+      int cameraIndex = 0;
+      if (selectedName != null) {
+        cameraIndex = cameras.indexWhere((element) => element.name == selectedName);
+      }
+      if (cameraIndex >= 0) {
+        if (selectedName == null || selectedName != _selectedCamera?.name) {
+          final prefs = await SharedPreferences.getInstance();
+          prefs.setString('camera1', cameras[cameraIndex].name);
+        }
+      }
+      // 如果查找成功则显示相机信息
+      if (cameraIndex >= 0) {
+        setState(() {
+          _cameras = cameras;
+          _selectedCamera = cameras[cameraIndex];
+          _cameraInfo = _selectedCamera!.getName;
+        });
+        return Future.value();
+      }
     }
+
+    // 没有选择相机，或者选择的相机不在 _cameras 中，则显示未知相机信息
+    setState(() {
+      _cameras = cameras;
+      _selectedCamera = null;
+      _cameraInfo = cameraInfo;
+    });
   }
 
   /// Initializes the camera on the device.
   Future<void> _initializeCamera() async {
     assert(!_initialized);
 
-    if (_cameras.isEmpty) {
+    if (_cameras.isEmpty || _selectedCamera == null) {
       return;
     }
-
     int cameraId = -1;
     try {
-      final int cameraIndex = _cameraIndex % _cameras.length;
-      final CameraDescription camera = _cameras[cameraIndex];
-
       cameraId = await CameraPlatform.instance.createCamera(
-        camera,
+        _selectedCamera!,
         _resolutionPreset,
-        enableAudio: _recordAudio,
+        enableAudio: false,
       );
 
       unawaited(_errorStreamSubscription?.cancel());
@@ -124,8 +139,7 @@ class _MyAppState extends State<MyApp> {
         setState(() {
           _initialized = true;
           _cameraId = cameraId;
-          _cameraIndex = cameraIndex;
-          _cameraInfo = 'Capturing camera: ${camera.name}';
+          _cameraInfo = 'Capturing camera: ${_selectedCamera!.name}';
         });
       }
     } on CameraException catch (e) {
@@ -142,10 +156,7 @@ class _MyAppState extends State<MyApp> {
         setState(() {
           _initialized = false;
           _cameraId = -1;
-          _cameraIndex = 0;
           _previewSize = null;
-          _recording = false;
-          _recordingTimed = false;
           _cameraInfo = 'Failed to initialize camera: ${e.code}: ${e.description}';
         });
       }
@@ -162,8 +173,6 @@ class _MyAppState extends State<MyApp> {
             _initialized = false;
             _cameraId = -1;
             _previewSize = null;
-            _recording = false;
-            _recordingTimed = false;
             _previewPaused = false;
             _cameraInfo = 'Camera disposed';
           });
@@ -187,54 +196,6 @@ class _MyAppState extends State<MyApp> {
     _showInSnackBar('Picture captured to: ${file.path}');
   }
 
-  Future<void> _recordTimed(int seconds) async {
-    if (_initialized && _cameraId > 0 && !_recordingTimed) {
-      unawaited(CameraPlatform.instance.onVideoRecordedEvent(_cameraId).first.then((VideoRecordedEvent event) async {
-        if (mounted) {
-          setState(() {
-            _recordingTimed = false;
-          });
-
-          _showInSnackBar('Video captured to: ${event.file.path}');
-        }
-      }));
-
-      await CameraPlatform.instance.startVideoRecording(
-        _cameraId,
-        maxVideoDuration: Duration(seconds: seconds),
-      );
-
-      if (mounted) {
-        setState(() {
-          _recordingTimed = true;
-        });
-      }
-    }
-  }
-
-  Future<void> _toggleRecord() async {
-    if (_initialized && _cameraId > 0) {
-      if (_recordingTimed) {
-        /// Request to stop timed recording short.
-        await CameraPlatform.instance.stopVideoRecording(_cameraId);
-      } else {
-        if (!_recording) {
-          await CameraPlatform.instance.startVideoRecording(_cameraId);
-        } else {
-          final XFile file = await CameraPlatform.instance.stopVideoRecording(_cameraId);
-
-          _showInSnackBar('Video captured to: ${file.path}');
-        }
-
-        if (mounted) {
-          setState(() {
-            _recording = !_recording;
-          });
-        }
-      }
-    }
-  }
-
   Future<void> _togglePreview() async {
     if (_initialized && _cameraId >= 0) {
       if (!_previewPaused) {
@@ -250,22 +211,6 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  Future<void> _switchCamera() async {
-    if (_cameras.isNotEmpty) {
-      // select next index;
-      _cameraIndex = (_cameraIndex + 1) % _cameras.length;
-      if (_initialized && _cameraId >= 0) {
-        await _disposeCurrentCamera();
-        await _fetchCameras();
-        if (_cameras.isNotEmpty) {
-          await _initializeCamera();
-        }
-      } else {
-        await _fetchCameras();
-      }
-    }
-  }
-
   Future<void> _onResolutionChange(ResolutionPreset newValue) async {
     setState(() {
       _resolutionPreset = newValue;
@@ -277,24 +222,11 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  Future<void> _onAudioChange(bool recordAudio) async {
-    setState(() {
-      _recordAudio = recordAudio;
-    });
-    if (_initialized && _cameraId >= 0) {
-      // Re-inits camera with new record audio setting.
-      await _disposeCurrentCamera();
-      await _initializeCamera();
-    }
-  }
-
   void _onCameraError(CameraErrorEvent event) {
     if (mounted) {
       _scaffoldMessengerKey.currentState?.showSnackBar(SnackBar(content: Text('Error: ${event.description}')));
-
       // Dispose camera on camera error as it can not be used anymore.
       _disposeCurrentCamera();
-      _fetchCameras();
     }
   }
 
@@ -330,6 +262,16 @@ class _MyAppState extends State<MyApp> {
         ),
         body: ListView(
           children: <Widget>[
+            CameraSelector(
+              cameras: _cameras,
+              selectedCamera: _selectedCamera,
+              onCameraSelected: (CameraDescription camera) async {
+                if (_initialized) {
+                  await _disposeCurrentCamera();
+                }
+                await SelectCamera(camera.name);
+              },
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(
                 vertical: 5,
@@ -339,7 +281,9 @@ class _MyAppState extends State<MyApp> {
             ),
             if (_cameras.isEmpty)
               ElevatedButton(
-                onPressed: _fetchCameras,
+                onPressed: () {
+                  SelectCamera(_selectedCamera?.name);
+                },
                 child: const Text('Re-check available cameras'),
               ),
             if (_cameras.isNotEmpty)
@@ -355,9 +299,6 @@ class _MyAppState extends State<MyApp> {
                     },
                     items: resolutionItems,
                   ),
-                  const SizedBox(width: 20),
-                  const Text('Audio:'),
-                  Switch(value: _recordAudio, onChanged: (bool state) => _onAudioChange(state)),
                   const SizedBox(width: 20),
                   ElevatedButton(
                     onPressed: _initialized ? _disposeCurrentCamera : _initializeCamera,
@@ -375,29 +316,6 @@ class _MyAppState extends State<MyApp> {
                       _previewPaused ? 'Resume preview' : 'Pause preview',
                     ),
                   ),
-                  const SizedBox(width: 5),
-                  ElevatedButton(
-                    onPressed: _initialized ? _toggleRecord : null,
-                    child: Text(
-                      (_recording || _recordingTimed) ? 'Stop recording' : 'Record Video',
-                    ),
-                  ),
-                  const SizedBox(width: 5),
-                  ElevatedButton(
-                    onPressed: (_initialized && !_recording && !_recordingTimed) ? () => _recordTimed(5) : null,
-                    child: const Text(
-                      'Record 5 seconds',
-                    ),
-                  ),
-                  if (_cameras.length > 1) ...<Widget>[
-                    const SizedBox(width: 5),
-                    ElevatedButton(
-                      onPressed: _switchCamera,
-                      child: const Text(
-                        'Switch camera',
-                      ),
-                    ),
-                  ]
                 ],
               ),
             const SizedBox(height: 5),
