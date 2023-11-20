@@ -63,7 +63,7 @@ API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const i
 	//Mat img = imdecode(buffer, IMREAD_COLOR);
 
 	log_helper::log.timer_start("yolov5f");
-	cv::Mat src = cv::Mat(width, height, CV_8UC3, p_data);
+	cv::Mat src = cv::Mat(height, width, CV_8UC3, p_data);
 	if (isBgr == false) {
 		cv::cvtColor(src, src, cv::COLOR_RGB2BGR);
 	}

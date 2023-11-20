@@ -12,9 +12,9 @@
 #endif
 #endif
 
-API_EXPORT void Init(int size);
+API_IMPORT void Init(int size);
 
-API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const int height, bool isBgr,
+API_IMPORT void FaceDetect(unsigned char* const p_data, const int width, const int height, bool isBgr,
 	float* const x1,
 	float* const y1,
 	float* const x2,
