@@ -9,3 +9,4 @@ mnist
 *.jpg
 *.log
 /TestServer/x64
+*.vscode

@@ -37,6 +37,7 @@ class _MyAppState extends State<MyApp> {
   ResolutionPreset _resolutionPreset = ResolutionPreset.veryHigh;
   StreamSubscription<CameraErrorEvent>? _errorStreamSubscription;
   StreamSubscription<CameraClosingEvent>? _cameraClosingStreamSubscription;
+  MemoryImage? _image;
 
   @override
   void initState() {
@@ -188,27 +189,27 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget _buildPreview() {
-    return CameraPlatform.instance.buildPreview(_cameraId);
+    return SizedBox(
+      width: 100,
+      height: 100,
+      child: CameraPlatform.instance.buildPreview(_cameraId),
+    );
   }
 
   Future<void> _takePicture() async {
+    // 读取摄像头图像，并显示到 _image
     final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
     _showInSnackBar('Picture captured to: ${file.path}');
-  }
 
-  Future<void> _togglePreview() async {
-    if (_initialized && _cameraId >= 0) {
-      if (!_previewPaused) {
-        await CameraPlatform.instance.pausePreview(_cameraId);
-      } else {
-        await CameraPlatform.instance.resumePreview(_cameraId);
-      }
-      if (mounted) {
-        setState(() {
-          _previewPaused = !_previewPaused;
-        });
-      }
-    }
+    // 将 file 显示到界面上
+    final bytes = await file.readAsBytes();
+    final image = MemoryImage(bytes);
+    setState(() {
+      _cameraInfo = 'Picture captured to: ${file.path}';
+      _previewSize = Size(100, 100);
+      _previewPaused = true;
+      _image = image;
+    });
   }
 
   Future<void> _onResolutionChange(ResolutionPreset newValue) async {
@@ -309,13 +310,6 @@ class _MyAppState extends State<MyApp> {
                     onPressed: _initialized ? _takePicture : null,
                     child: const Text('Take picture'),
                   ),
-                  const SizedBox(width: 5),
-                  ElevatedButton(
-                    onPressed: _initialized ? _togglePreview : null,
-                    child: Text(
-                      _previewPaused ? 'Resume preview' : 'Pause preview',
-                    ),
-                  ),
                 ],
               ),
             const SizedBox(height: 5),
@@ -329,9 +323,32 @@ class _MyAppState extends State<MyApp> {
                     constraints: const BoxConstraints(
                       maxHeight: 500,
                     ),
-                    child: AspectRatio(
-                      aspectRatio: _previewSize!.width / _previewSize!.height,
-                      child: _buildPreview(),
+                    child: SizedBox(
+                      width: 200,
+                      child: AspectRatio(
+                        aspectRatio: _previewSize!.width / _previewSize!.height,
+                        child: _buildPreview(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (_previewSize != null && _image != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                ),
+                child: Align(
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      maxHeight: 500,
+                    ),
+                    child: SizedBox(
+                      width: 200,
+                      child: AspectRatio(
+                        aspectRatio: _previewSize!.width / _previewSize!.height,
+                        child: Image(image: _image!),
+                      ),
                     ),
                   ),
                 ),
