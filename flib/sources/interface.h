@@ -31,3 +31,21 @@ API_IMPORT void FaceDetect(unsigned char* const p_data, const int width, const i
 	float* const f5y,
 	int* const count
 );
+
+API_EXPORT void FaceDetectFile(const char* const filePath,
+	float* const x1,
+	float* const y1,
+	float* const x2,
+	float* const y2,
+	float* const f1x,
+	float* const f1y,
+	float* const f2x,
+	float* const f2y,
+	float* const f3x,
+	float* const f3y,
+	float* const f4x,
+	float* const f4y,
+	float* const f5x,
+	float* const f5y,
+	int* const count
+);

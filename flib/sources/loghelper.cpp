@@ -81,18 +81,19 @@ static void outputToConsole(const log_helper::enum_level level, const std::strin
 {
 	// colorful
 #ifdef _WIN_
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	int color = 0;
-	switch (level) {
-	case log_helper::enum_level::info: color = CYAN; break;
-	case log_helper::enum_level::warning: color = YELLOW; break;
-	case log_helper::enum_level::error: color = RED; break;
-	case log_helper::enum_level::fatal: color = RED_BG; break;
-	case log_helper::enum_level::debug: color = GREEN; break;
-	}
-	SetConsoleTextAttribute(hConsole, color);
-	std::cout << time << "\t" << level_str << "\t\t" << prefix << log << std::endl;
-	SetConsoleTextAttribute(hConsole, RED | GREEN | BLUE);
+	//HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	//int color = 0;
+	//switch (level) {
+	//case log_helper::enum_level::info: color = CYAN; break;
+	//case log_helper::enum_level::warning: color = YELLOW; break;
+	//case log_helper::enum_level::error: color = RED; break;
+	//case log_helper::enum_level::fatal: color = RED_BG; break;
+	//case log_helper::enum_level::debug: color = GREEN; break;
+	//}
+	//SetConsoleTextAttribute(hConsole, color);
+	printf("%s\t%s\t\t%s%s\r\n", time, level_str, prefix, log);
+	//std::cout << time << "\t" << level_str << "\t\t" << prefix << log << std::endl;
+	//SetConsoleTextAttribute(hConsole, RED | GREEN | BLUE);
 #else
 	std::string color = "";
 	switch (level) {

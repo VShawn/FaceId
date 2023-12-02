@@ -12,7 +12,9 @@ static void InitNcnn(int size)
 	std::string test_img_path = "1.jpg";
 	std::string save_img_path = "2.jpg";
 
+	LOG_DEBUG("YOLO5Face INIT");
 	g_ptr_yolo = new YOLO5Face(param_path, bin_path, 1, size, size);
+	LOG_DEBUG("YOLO5Face INIT END");
 
 	//delete yolov5face;
 }
@@ -87,4 +89,37 @@ API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const i
 		f5x[i] = detected_boxes[i].landmarks.points[4].x;
 		f5y[i] = detected_boxes[i].landmarks.points[4].y;
 	}
+}
+
+
+API_EXPORT void FaceDetectFile(const char* const filePath)
+{
+	LOG_DEBUG("FaceDetectFile");
+	//vector<uint8_t> buffer(rawBytes, rawBytes + inBytesCount);
+	//Mat img = imdecode(buffer, IMREAD_COLOR);
+
+	cv::Mat src = cv::imread(filePath);
+	LOG_DEBUG("src = %d, %d", src.cols, src.rows);
+	printf("src = %d, %d", src.cols, src.rows);
+	std::vector<BoxfWithLandmarks> detected_boxes = FaceDetectInner(src);
+	int c = std::min((int)detected_boxes.size(), 100);
+	LOG_DEBUG("count = %d", c);
+	//*count = c;
+	//for (size_t i = 0; i < c; i++)
+	//{
+	//	x1[i] = detected_boxes[i].box.x1;
+	//	y1[i] = detected_boxes[i].box.y1;
+	//	x2[i] = detected_boxes[i].box.x2;
+	//	y2[i] = detected_boxes[i].box.y2;
+	//	f1x[i] = detected_boxes[i].landmarks.points[0].x;
+	//	f1y[i] = detected_boxes[i].landmarks.points[0].y;
+	//	f2x[i] = detected_boxes[i].landmarks.points[1].x;
+	//	f2y[i] = detected_boxes[i].landmarks.points[1].y;
+	//	f3x[i] = detected_boxes[i].landmarks.points[2].x;
+	//	f3y[i] = detected_boxes[i].landmarks.points[2].y;
+	//	f4x[i] = detected_boxes[i].landmarks.points[3].x;
+	//	f4y[i] = detected_boxes[i].landmarks.points[3].y;
+	//	f5x[i] = detected_boxes[i].landmarks.points[4].x;
+	//	f5y[i] = detected_boxes[i].landmarks.points[4].y;
+	//}
 }

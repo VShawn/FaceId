@@ -62,10 +62,20 @@ int main()
 	int count = 0;
 
 	cv::Mat img_bgr = cv::imread(test_img_path);
+	//uchar* arr = img_bgr.isContinuous() ? img_bgr.data : img_bgr.clone().data;
+	//uint length = img_bgr.total() * img_bgr.channels();
+	//FaceDetect(arr, img_bgr.size().width, img_bgr.size().height, true,
+	//	x1, y1,
+	//	x2, y2,
+	//	f1x, f1y,
+	//	f2x, f2y,
+	//	f3x, f3y,
+	//	f4x, f4y,
+	//	f5x, f5y,
+	//	&count);
 
-	uchar* arr = img_bgr.isContinuous() ? img_bgr.data : img_bgr.clone().data;
-	uint length = img_bgr.total() * img_bgr.channels();
-	FaceDetect(arr, img_bgr.size().width, img_bgr.size().height, true,
+
+	FaceDetectFile(test_img_path.c_str(),
 		x1, y1,
 		x2, y2,
 		f1x, f1y,
@@ -75,8 +85,8 @@ int main()
 		f5x, f5y,
 		&count);
 
-	std::cout << "NCNN Version Done! Detected Face Num: " << count << std::endl;
 
+	std::cout << "NCNN Version Done! Detected Face Num: " << count << std::endl;
 	draw_boxes_with_landmarks_inplace(img_bgr,
 		x1, y1,
 		x2, y2,
@@ -86,5 +96,7 @@ int main()
 		f4x, f4y,
 		f5x, f5y,
 		count);
+	//cv::imshow("test", img_bgr);
+	//cv::waitKey(0);
 	cv::imwrite(save_img_path, img_bgr);
 }
