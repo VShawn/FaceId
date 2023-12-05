@@ -91,8 +91,8 @@ static void outputToConsole(const log_helper::enum_level level, const std::strin
 	//case log_helper::enum_level::debug: color = GREEN; break;
 	//}
 	//SetConsoleTextAttribute(hConsole, color);
-	printf("%s\t%s\t\t%s%s\r\n", time, level_str, prefix, log);
-	//std::cout << time << "\t" << level_str << "\t\t" << prefix << log << std::endl;
+	//printf("%s\t%s\t\t%s%s\r\n", time, level_str, prefix, log);
+	std::cout << time << "\t" << level_str << "\t\t" << prefix << log << std::endl;
 	//SetConsoleTextAttribute(hConsole, RED | GREEN | BLUE);
 #else
 	std::string color = "";

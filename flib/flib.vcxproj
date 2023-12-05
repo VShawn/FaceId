@@ -146,6 +146,9 @@
       <EnableUAC>false</EnableUAC>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy /Y "$(SolutionDir)Build\$(Platform)\$(Configuration)\$(ProjectName).dll" "$(SolutionDir)\face_ui\lib"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="sources\head.h" />

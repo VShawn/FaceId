@@ -15,6 +15,8 @@ YOLO5Face::YOLO5Face(const std::string& _param_path,
 	bin_path(_bin_path.data()), num_threads(_num_threads),
 	input_height(_input_height), input_width(_input_width)
 {
+	std::cout << "YOLO5Face construct" << std::endl;
+	std::cout << "_input_height = " << _input_height << ", _input_width = " << _input_width << std::endl;
 	net = new ncnn::Net();
 	// init net, change this setting for better performance.
 	net->opt.use_fp16_arithmetic = false;
@@ -85,6 +87,7 @@ void YOLO5Face::detect(const cv::Mat& mat, std::vector<BoxfWithLandmarks>& detec
 	// resize & unscale
 	cv::Mat mat_rs;
 	YOLO5FaceScaleParams scale_params;
+	//std::cout << "input_height = " << input_height << ", input_width = " << input_width << std::endl;
 	this->resize_unscale(mat, mat_rs, input_height, input_width, scale_params);
 	// 1. make input tensor
 	ncnn::Mat input;
