@@ -100,8 +100,22 @@ API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const i
 }
 
 
-API_EXPORT void FaceDetectFile(const char* const filePath, 
-	float* const x1)
+API_EXPORT void FaceDetectFile(const char* const filePath,
+	float* const x1,
+	float* const y1,
+	float* const x2,
+	float* const y2,
+	float* const f1x,
+	float* const f1y,
+	float* const f2x,
+	float* const f2y,
+	float* const f3x,
+	float* const f3y,
+	float* const f4x,
+	float* const f4y,
+	float* const f5x,
+	float* const f5y,
+	int* const count)
 {
 	if (g_ptr_yolo == nullptr)
 	{
@@ -121,19 +135,19 @@ API_EXPORT void FaceDetectFile(const char* const filePath,
 	{
 		x1[i] = detected_boxes[i].box.x1;
 		LOG_DEBUG("x1[%d] = %f", i, x1[i]);
-		//y1[i] = detected_boxes[i].box.y1;
-		//x2[i] = detected_boxes[i].box.x2;
-		//y2[i] = detected_boxes[i].box.y2;
-		//f1x[i] = detected_boxes[i].landmarks.points[0].x;
-		//f1y[i] = detected_boxes[i].landmarks.points[0].y;
-		//f2x[i] = detected_boxes[i].landmarks.points[1].x;
-		//f2y[i] = detected_boxes[i].landmarks.points[1].y;
-		//f3x[i] = detected_boxes[i].landmarks.points[2].x;
-		//f3y[i] = detected_boxes[i].landmarks.points[2].y;
-		//f4x[i] = detected_boxes[i].landmarks.points[3].x;
-		//f4y[i] = detected_boxes[i].landmarks.points[3].y;
-		//f5x[i] = detected_boxes[i].landmarks.points[4].x;
-		//f5y[i] = detected_boxes[i].landmarks.points[4].y;
+		y1[i] = detected_boxes[i].box.y1;
+		x2[i] = detected_boxes[i].box.x2;
+		y2[i] = detected_boxes[i].box.y2;
+		f1x[i] = detected_boxes[i].landmarks.points[0].x;
+		f1y[i] = detected_boxes[i].landmarks.points[0].y;
+		f2x[i] = detected_boxes[i].landmarks.points[1].x;
+		f2y[i] = detected_boxes[i].landmarks.points[1].y;
+		f3x[i] = detected_boxes[i].landmarks.points[2].x;
+		f3y[i] = detected_boxes[i].landmarks.points[2].y;
+		f4x[i] = detected_boxes[i].landmarks.points[3].x;
+		f4y[i] = detected_boxes[i].landmarks.points[3].y;
+		f5x[i] = detected_boxes[i].landmarks.points[4].x;
+		f5y[i] = detected_boxes[i].landmarks.points[4].y;
 	}
-	//*count = c;
+	*count = c;
 }

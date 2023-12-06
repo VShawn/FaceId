@@ -24,11 +24,11 @@ void draw_boxes_with_landmarks_inplace(cv::Mat& mat_inplace,
 	{
 		auto x = 100 * (i + 1);
 		cv::rectangle(mat_inplace, cv::Rect(x1[i], y1[i], x2[i] - x1[i] + 1, y2[i] - y1[i] + 1), cv::Scalar(x, x, 0), 2);
-		cv::circle(mat_inplace, cv::Point2f(f1x[i], f1y[i]), 2, cv::Scalar(0, x, 0), -1);
-		cv::circle(mat_inplace, cv::Point2f(f2x[i], f2y[i]), 2, cv::Scalar(0, x, 0), -1);
-		cv::circle(mat_inplace, cv::Point2f(f3x[i], f3y[i]), 2, cv::Scalar(0, x, 0), -1);
-		cv::circle(mat_inplace, cv::Point2f(f4x[i], f4y[i]), 2, cv::Scalar(0, x, 0), -1);
-		cv::circle(mat_inplace, cv::Point2f(f5x[i], f5y[i]), 2, cv::Scalar(0, x, 0), -1);
+		cv::circle(mat_inplace, cv::Point2f(f1x[i], f1y[i]), 2, cv::Scalar(x, 0, 0), -1); // 左眼
+		cv::circle(mat_inplace, cv::Point2f(f2x[i], f2y[i]), 2, cv::Scalar(0, x, 0), -1); // 右眼
+		cv::circle(mat_inplace, cv::Point2f(f3x[i], f3y[i]), 2, cv::Scalar(0, 0, x), -1); // 鼻子
+		cv::circle(mat_inplace, cv::Point2f(f4x[i], f4y[i]), 2, cv::Scalar(x, x, 0), -1); // 左嘴角
+		cv::circle(mat_inplace, cv::Point2f(f5x[i], f5y[i]), 2, cv::Scalar(x, 0, x), -1); // 右嘴角
 		std::cout << x1[i] << " " << y1[i] << " " << x2[i] << " " << y2[i] << std::endl;
 		std::cout << f1x[i] << ", " << f1y[i] << std::endl;
 		std::cout << f2x[i] << ", " << f2y[i] << std::endl;
