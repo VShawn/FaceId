@@ -12,6 +12,7 @@ import 'package:camera_windows/camera_windows.dart';
 import 'package:ffi/ffi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:win32/win32.dart';
+import 'flib.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,10 +30,9 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String _cameraInfo = 'Unknown';
   List<CameraDescription> _cameras = <CameraDescription>[];
-  CameraDescription? _selectedCamera = null;
+  CameraDescription? _selectedCamera;
   int _cameraId = -1;
   bool _initialized = false;
-  bool _previewPaused = false;
   Size? _previewSize;
   ResolutionPreset _resolutionPreset = ResolutionPreset.veryHigh;
   StreamSubscription<CameraErrorEvent>? _errorStreamSubscription;
@@ -43,7 +43,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     WidgetsFlutterBinding.ensureInitialized();
-    SelectCamera(null);
+    selectCamera(null);
   }
 
   @override
@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  Future<void> SelectCamera(String? selectedName) async {
+  Future<void> selectCamera(String? selectedName) async {
     if (selectedName == null) {
       final prefs = await SharedPreferences.getInstance();
       selectedName = prefs.getString('camera1');
@@ -174,7 +174,6 @@ class _MyAppState extends State<MyApp> {
             _initialized = false;
             _cameraId = -1;
             _previewSize = null;
-            _previewPaused = false;
             _cameraInfo = 'Camera disposed';
           });
         }
@@ -201,13 +200,14 @@ class _MyAppState extends State<MyApp> {
     final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
     _showInSnackBar('Picture captured to: ${file.path}');
 
+    // var fs = FaceLib.getInstance().detectFaces(file.path);
+
     // 将 file 显示到界面上
     final bytes = await file.readAsBytes();
     final image = MemoryImage(bytes);
     setState(() {
       _cameraInfo = 'Picture captured to: ${file.path}';
       _previewSize = Size(100, 100);
-      _previewPaused = true;
       _image = image;
     });
   }
@@ -270,7 +270,7 @@ class _MyAppState extends State<MyApp> {
                 if (_initialized) {
                   await _disposeCurrentCamera();
                 }
-                await SelectCamera(camera.name);
+                await selectCamera(camera.name);
               },
             ),
             Padding(
@@ -283,7 +283,7 @@ class _MyAppState extends State<MyApp> {
             if (_cameras.isEmpty)
               ElevatedButton(
                 onPressed: () {
-                  SelectCamera(_selectedCamera?.name);
+                  selectCamera(_selectedCamera?.name);
                 },
                 child: const Text('Re-check available cameras'),
               ),
