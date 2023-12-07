@@ -63,7 +63,7 @@ void draw_boxes_with_landmarks_inplace(cv::Mat& mat_inplace, const std::vector<B
 
 int main()
 {
-	Init(640);
+	Init("yolov5face-n-640x640.opt.bin", 640);
 	std::string test_img_path = "1.jpg";
 	std::string save_img_path = "2.jpg";
 	cv::Mat img_bgr = cv::imread(test_img_path);

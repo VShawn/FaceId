@@ -43,7 +43,7 @@ int main()
 	std::string test_img_path = "1.jpg";
 	std::string save_img_path = "2.jpg";
 
-	//Init(320);
+	Init("yolov5face-n-640x640.opt.bin", 320);
 
 	float x1[100];
 	float y1[100];

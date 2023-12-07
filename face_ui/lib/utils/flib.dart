@@ -1,61 +1,11 @@
-import 'dart:convert';
 import 'dart:ffi';
-import 'dart:typed_data';
+import 'dart:io';
+import 'package:face_locker/model/face_box.dart';
+import 'package:face_locker/utils/log_util.dart' as LOG;
 import 'package:ffi/ffi.dart';
 
-import 'dart:ffi';
-import 'package:ffi/ffi.dart';
-
-class FaceResult {
-  final double x1;
-  final double y1;
-
-  final double x2;
-  final double y2;
-
-  double get width => x2 - x1;
-  double get height => y2 - y1;
-
-  final double eye1X;
-  final double eye1Y;
-
-  final double eye2X;
-  final double eye2Y;
-
-  final double noseX;
-  final double noseY;
-
-  final double mouth1X;
-  final double mouth1Y;
-
-  final double mouth2X;
-  final double mouth2Y;
-
-  final int faceId;
-
-  FaceResult(
-      {required this.x1,
-      required this.y1,
-      required this.x2,
-      required this.y2,
-      required this.eye1X,
-      required this.eye1Y,
-      required this.eye2X,
-      required this.eye2Y,
-      required this.noseX,
-      required this.noseY,
-      required this.mouth1X,
-      required this.mouth1Y,
-      required this.mouth2X,
-      required this.mouth2Y,
-      required this.faceId});
-
-  // 实现打印方法
-  @override
-  String toString() {
-    return 'FaceResult{x1: $x1, y1: $y1, x2: $x2, y2: $y2, eye1X: $eye1X, eye1Y: $eye1Y, eye2X: $eye2X, eye2Y: $eye2Y, noseX: $noseX, noseY: $noseY, mouth1X: $mouth1X, mouth1Y: $mouth1Y, mouth2X: $mouth2X, mouth2Y: $mouth2Y, faceId: $faceId}';
-  }
-}
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart';
 
 // 定义 C 函数签名
 typedef Native_FaceDetectFile = Void Function(
@@ -95,23 +45,76 @@ typedef FFI_FaceDetectFile = void Function(
   Pointer<Int32> count,
 );
 
+// 定义 C 函数签名
+typedef Native_Init = Int32 Function(Pointer<Utf8> filePath, Int32 size);
+typedef FFI_Init = int Function(Pointer<Utf8> filePath, int size);
+
 class FaceLib {
-  final String dllPath;
-  late DynamicLibrary nativeApi;
-  late FFI_FaceDetectFile faceDetectFileC;
-  FaceLib({this.dllPath = "flib.dll"}) {
+  late String modelPath;
+  late int modelSize;
+  late DynamicLibrary? nativeApi;
+  late FFI_FaceDetectFile? _faceDetectFileC;
+  FaceLib({this.modelSize = 640}) {
     //加载库
     // DynamicLibrary nativeApi = Platform.isAndroid
     //     ? DynamicLibrary.open("libnative_ffi.so")
     //     : DynamicLibrary.process();
-    nativeApi = DynamicLibrary.open(dllPath);
-    faceDetectFileC = nativeApi.lookupFunction<Native_FaceDetectFile, FFI_FaceDetectFile>("FaceDetectFile");
+    // print current path
+    // print(Directory.current.path);
+    // nativeApi = DynamicLibrary.open(dllPath);
+    if (kReleaseMode) {
+      modelPath = join(Directory(Platform.resolvedExecutable).parent.path, 'data', 'flutter_assets', 'assets', 'yolov5face-n-640x640.opt.bin');
+    } else {
+      var path = Directory.current.path;
+      modelPath = '$path/assets/yolov5face-n-640x640.opt.bin';
+    }
+    try {
+      if (kReleaseMode) {
+        // I'm on release mode, absolute linking
+        final String localLib = join('data', 'flutter_assets', 'assets', 'flib.dll');
+        String pathToLib = join(Directory(Platform.resolvedExecutable).parent.path, localLib);
+        nativeApi = DynamicLibrary.open(pathToLib);
+      } else {
+        // I'm on debug mode, local linking
+        var path = Directory.current.path;
+        nativeApi = DynamicLibrary.open('$path/assets/flib.dll');
+      }
+    } catch (e) {
+      LOG.LogE(e.toString());
+      nativeApi = null;
+    }
+    _faceDetectFileC = nativeApi?.lookupFunction<Native_FaceDetectFile, FFI_FaceDetectFile>("FaceDetectFile");
+    init();
   }
 
-  List<FaceResult> detectFaces(String imagePath) {
-    // toNativeUtf8() 是由 ffi 库提供的API，调用该函数时会在 Native 中分配内存，因此使用完后也需要释放内存。也可以使用 calloc.free() 来释放由 malloc 分配的内存；
-    final filePath = imagePath.toNativeUtf8();
+  bool init() {
+    LOG.LogD("init with modelPath: $modelPath");
+    if (_faceDetectFileC == null) {
+      LOG.LogE("_initC is null, dll not loaded!");
+      return false;
+    }
 
+    final pathC = modelPath.toNativeUtf8();
+    var result = -1;
+    try {
+      final initC = nativeApi?.lookupFunction<Native_Init, FFI_Init>("Init");
+      result = initC!(pathC, modelSize);
+    } catch (e) {
+      LOG.LogE(e.toString());
+    }
+    calloc.free(pathC);
+    return result == 0;
+  }
+
+  List<FaceBox> detectFaces(String imagePath) {
+    // toNativeUtf8() 是由 ffi 库提供的API，调用该函数时会在 Native 中分配内存，因此使用完后也需要释放内存。也可以使用 calloc.free() 来释放由 malloc 分配的内存；
+
+    if (_faceDetectFileC == null) {
+      LOG.LogE("faceDetectFileC is null, dll not loaded!");
+      return [];
+    }
+
+    final filePath = imagePath.toNativeUtf8();
     // 创建长度为100的数组
     // 创建参数变量
     final x1 = calloc<Float>(100);
@@ -129,7 +132,7 @@ class FaceLib {
     final f5x = calloc<Float>(100);
     final f5y = calloc<Float>(100);
     final ccount = calloc<Int32>();
-    faceDetectFileC(
+    _faceDetectFileC!(
       filePath,
       x1,
       y1,
@@ -208,9 +211,9 @@ class FaceLib {
     // print(countDart);
 
     // 准备返回值
-    List<FaceResult> results = [];
+    List<FaceBox> results = [];
     for (int i = 0; i < countDart; i++) {
-      results.add(FaceResult(
+      results.add(FaceBox(
           x1: x1array[i],
           y1: y1array[i],
           x2: x2array[i],
@@ -230,7 +233,7 @@ class FaceLib {
     return results;
   }
 
-  static late FaceLib? _instance;
+  static FaceLib? _instance;
   // 静态 FaceLib 对象初始化
   static FaceLib getInstance() {
     _instance ??= FaceLib();

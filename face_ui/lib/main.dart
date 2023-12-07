@@ -3,16 +3,16 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:io';
 
-import 'package:face_locker/camera_selector.dart';
+import 'package:face_locker/view/camera_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera_platform_interface/camera_platform_interface.dart';
-import 'package:camera_windows/camera_windows.dart';
-import 'package:ffi/ffi.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:win32/win32.dart';
-import 'flib.dart';
+import 'utils/flib.dart';
+import 'package:face_locker/utils/log_util.dart' as LOG;
 
 void main() {
   runApp(const MyApp());
@@ -37,6 +37,7 @@ class _MyAppState extends State<MyApp> {
   ResolutionPreset _resolutionPreset = ResolutionPreset.veryHigh;
   StreamSubscription<CameraErrorEvent>? _errorStreamSubscription;
   StreamSubscription<CameraClosingEvent>? _cameraClosingStreamSubscription;
+  late Timer _timer;
   MemoryImage? _image;
 
   @override
@@ -44,6 +45,10 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     WidgetsFlutterBinding.ensureInitialized();
     selectCamera(null);
+    _timer = Timer.periodic(Duration(milliseconds: 1000), (timer) {
+      LOG.LogD("timer");
+      // _takePicture();
+    });
   }
 
   @override
@@ -53,6 +58,7 @@ class _MyAppState extends State<MyApp> {
     _errorStreamSubscription = null;
     _cameraClosingStreamSubscription?.cancel();
     _cameraClosingStreamSubscription = null;
+    _timer.cancel();
     super.dispose();
   }
 
@@ -130,11 +136,11 @@ class _MyAppState extends State<MyApp> {
         cameraId,
       );
 
-      final CameraInitializedEvent event = await initialized;
-      _previewSize = Size(
-        event.previewWidth,
-        event.previewHeight,
-      );
+      // final CameraInitializedEvent event = await initialized;
+      // _previewSize = Size(
+      //   event.previewWidth,
+      //   event.previewHeight,
+      // );
 
       if (mounted) {
         setState(() {
@@ -196,20 +202,29 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _takePicture() async {
+    if (!_initialized) return;
+
     // 读取摄像头图像，并显示到 _image
     final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
     _showInSnackBar('Picture captured to: ${file.path}');
 
-    // var fs = FaceLib.getInstance().detectFaces(file.path);
+    var fs = FaceLib.getInstance().detectFaces(file.path);
+    print(fs);
 
     // 将 file 显示到界面上
     final bytes = await file.readAsBytes();
     final image = MemoryImage(bytes);
     setState(() {
       _cameraInfo = 'Picture captured to: ${file.path}';
-      _previewSize = Size(100, 100);
+      // _previewSize = const Size(100, 100);
       _image = image;
     });
+
+    // 删除 file.path 路径指向的文件
+    final f = File(file.path);
+    if (f.existsSync()) {
+      await f.delete();
+    }
   }
 
   Future<void> _onResolutionChange(ResolutionPreset newValue) async {
@@ -333,7 +348,7 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ),
               ),
-            if (_previewSize != null && _image != null)
+            if (_image != null)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
@@ -343,13 +358,7 @@ class _MyAppState extends State<MyApp> {
                     constraints: const BoxConstraints(
                       maxHeight: 500,
                     ),
-                    child: SizedBox(
-                      width: 200,
-                      child: AspectRatio(
-                        aspectRatio: _previewSize!.width / _previewSize!.height,
-                        child: Image(image: _image!),
-                      ),
-                    ),
+                    child: SizedBox(width: 200, child: Image(image: _image!)),
                   ),
                 ),
               ),

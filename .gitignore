@@ -10,3 +10,6 @@ mnist
 *.log
 /TestServer/x64
 *.vscode
+*.dll
+*.bin
+*.param

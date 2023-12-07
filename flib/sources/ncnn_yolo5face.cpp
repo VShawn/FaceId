@@ -400,7 +400,7 @@ void YOLO5Face::nms_bboxes_kps(std::vector<BoxfWithLandmarks>& input,
 		[](const BoxfWithLandmarks& a, const BoxfWithLandmarks& b)
 		{ return a.box.score > b.box.score; }
 	);
-	const unsigned int box_num = input.size();
+	size_t box_num = input.size();
 	std::vector<int> merged(box_num, 0);
 
 	unsigned int count = 0;

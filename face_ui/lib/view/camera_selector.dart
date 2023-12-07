@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:camera_platform_interface/camera_platform_interface.dart';
-import 'package:camera_windows/camera_windows.dart';
 
 class CameraSelector extends StatefulWidget {
   final List<CameraDescription> cameras;
   final CameraDescription? selectedCamera;
   final Function(CameraDescription) onCameraSelected;
 
-  CameraSelector({required this.cameras, required this.selectedCamera, required this.onCameraSelected});
+  const CameraSelector({required this.cameras, required this.selectedCamera, required this.onCameraSelected});
 
   @override
   _CameraSelectorState createState() => _CameraSelectorState();

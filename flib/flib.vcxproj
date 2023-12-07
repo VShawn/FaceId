@@ -147,7 +147,8 @@
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y "$(SolutionDir)Build\$(Platform)\$(Configuration)\$(ProjectName).dll" "$(SolutionDir)\face_ui\lib"</Command>
+      <Command>xcopy /Y "$(SolutionDir)Build\$(Platform)\$(Configuration)\$(ProjectName).dll" "$(SolutionDir)\face_ui\lib"
+xcopy /Y "$(SolutionDir)Build\$(Platform)\$(Configuration)\$(ProjectName).dll" "$(SolutionDir)\face_ui\assets"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -7,11 +7,14 @@ environment:
   sdk: '>=3.1.5 <4.0.0'
 
 dependencies:
+  camera_platform_interface: ^2.6.0
   camera_windows: ^0.2.1+8
+  ffi: ^2.1.0
   flutter:
     sdk: flutter
   flutter_screen_lock: ^9.0.1
   local_auth: ^2.1.7
+  logger: ^2.0.2+1
   path: ^1.8.3
   path_provider: ^2.1.1
   shared_preferences: ^2.2.2
@@ -24,3 +27,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/yolov5face-n-640x640.opt.bin
+    - assets/yolov5face-n-640x640.opt.param
+    - assets/flib.dll

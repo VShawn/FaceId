@@ -5,27 +5,31 @@
 
 static YOLO5Face* g_ptr_yolo = nullptr;
 
-static void InitNcnn(int size = 640)
+// 初始化模型，返回成功失败
+static bool InitNcnn(std::string path, int size)
 {
 	if (g_ptr_yolo != nullptr)
 		delete g_ptr_yolo;
 
-	std::string param_path = "yolov5face-n-640x640.opt.param"; // yolov5n-face
-	std::string bin_path = "yolov5face-n-640x640.opt.bin";
-	std::string test_img_path = "1.jpg";
-	std::string save_img_path = "2.jpg";
+	// 如果 path 以 .bin 或 .param 结尾，则去掉后缀
+	if (path.size() > 4 && path.substr(path.size() - 4) == ".bin")
+		path = path.substr(0, path.size() - 4);
+	else if (path.size() > 6 && path.substr(path.size() - 6) == ".param")
+		path = path.substr(0, path.size() - 6);
+
+	std::string param_path = path + ".param"; // yolov5n-face
+	std::string bin_path = path + ".bin";
 
 	LOG_DEBUG("YOLO5Face INIT");
 	g_ptr_yolo = new YOLO5Face(param_path, bin_path, 1, size, size);
 	LOG_DEBUG("YOLO5Face INIT END");
-
-	//delete yolov5face;
 }
 
-API_EXPORT void Init(int size)
+// 初始化，返回成功失败，输入模型路径和检测尺寸
+API_EXPORT int Init(const char* const filePath, int size)
 {
 	log_helper::log.init("cpp.log", log_helper::enum_level::debug);
-	InitNcnn(size);
+	return InitNcnn(std::string(filePath), size);
 }
 
 std::vector<BoxfWithLandmarks> FaceDetectInner(cv::Mat img)
@@ -46,6 +50,7 @@ std::vector<BoxfWithLandmarks> FaceDetectInner(cv::Mat img)
 	return results;
 }
 
+// 人脸检测, 传入图片的 RGB 二进制数据，返回人脸框坐标和5个关键点坐标
 API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const int height, bool isBgr,
 	float* const x1,
 	float* const y1,
@@ -66,7 +71,8 @@ API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const i
 {
 	if (g_ptr_yolo == nullptr)
 	{
-		Init(640);
+		LOG_FATAL("NOT INIT!!!!");
+		return;
 	}
 
 	//vector<uint8_t> buffer(rawBytes, rawBytes + inBytesCount);
@@ -119,7 +125,8 @@ API_EXPORT void FaceDetectFile(const char* const filePath,
 {
 	if (g_ptr_yolo == nullptr)
 	{
-		Init(640);
+		LOG_FATAL("NOT INIT!!!!");
+		return;
 	}
 
 	LOG_DEBUG("FaceDetectFile");

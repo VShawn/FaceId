@@ -225,7 +225,7 @@ private:
 	const int input_width; // 640
 
 	const float mean_vals[3] = { 0.f, 0.f, 0.f }; // RGB
-	const float norm_vals[3] = { 1.0 / 255.f, 1.0 / 255.f, 1.0 / 255.f };
+	const float norm_vals[3] = { 1.0f / 255.f, 1.0f / 255.f, 1.0f / 255.f };
 	static constexpr const unsigned int nms_pre = 1000;
 	static constexpr const unsigned int max_nms = 30000;
 
