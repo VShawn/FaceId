@@ -5,10 +5,12 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:face_locker/model/face_box.dart';
 import 'package:face_locker/view/camera_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera_platform_interface/camera_platform_interface.dart';
+import 'package:image_size_getter/image_size_getter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:win32/win32.dart';
 import 'utils/flib.dart';
@@ -33,7 +35,8 @@ class _MyAppState extends State<MyApp> {
   CameraDescription? _selectedCamera;
   int _cameraId = -1;
   bool _initialized = false;
-  Size? _previewSize;
+  Size? _imageSize;
+  List<FaceBox>? faces;
   ResolutionPreset _resolutionPreset = ResolutionPreset.veryHigh;
   StreamSubscription<CameraErrorEvent>? _errorStreamSubscription;
   StreamSubscription<CameraClosingEvent>? _cameraClosingStreamSubscription;
@@ -45,9 +48,8 @@ class _MyAppState extends State<MyApp> {
     super.initState();
     WidgetsFlutterBinding.ensureInitialized();
     selectCamera(null);
-    _timer = Timer.periodic(Duration(milliseconds: 1000), (timer) {
-      LOG.LogD("timer");
-      // _takePicture();
+    _timer = Timer.periodic(Duration(milliseconds: 1000 * 10), (timer) {
+      _takePicture();
     });
   }
 
@@ -163,7 +165,7 @@ class _MyAppState extends State<MyApp> {
         setState(() {
           _initialized = false;
           _cameraId = -1;
-          _previewSize = null;
+          _imageSize = null;
           _cameraInfo = 'Failed to initialize camera: ${e.code}: ${e.description}';
         });
       }
@@ -179,7 +181,7 @@ class _MyAppState extends State<MyApp> {
           setState(() {
             _initialized = false;
             _cameraId = -1;
-            _previewSize = null;
+            _imageSize = null;
             _cameraInfo = 'Camera disposed';
           });
         }
@@ -213,11 +215,14 @@ class _MyAppState extends State<MyApp> {
 
     // 将 file 显示到界面上
     final bytes = await file.readAsBytes();
+    final memoryImageSize = ImageSizeGetter.getSize(MemoryInput(bytes));
     final image = MemoryImage(bytes);
     setState(() {
       _cameraInfo = 'Picture captured to: ${file.path}';
       // _previewSize = const Size(100, 100);
       _image = image;
+      _imageSize = Size(memoryImageSize.width, memoryImageSize.height);
+      faces = fs;
     });
 
     // 删除 file.path 路径指向的文件
@@ -328,44 +333,26 @@ class _MyAppState extends State<MyApp> {
                 ],
               ),
             const SizedBox(height: 5),
-            if (_initialized && _cameraId > 0 && _previewSize != null)
+            if (_initialized && _cameraId > 0 && _imageSize != null && _image != null)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
                 ),
                 child: Align(
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      maxHeight: 500,
-                    ),
-                    child: SizedBox(
-                      width: 200,
-                      child: AspectRatio(
-                        aspectRatio: _previewSize!.width / _previewSize!.height,
-                        child: _buildPreview(),
-                      ),
+                  child: SizedBox(
+                    width: 400,
+                    child: AspectRatio(
+                      aspectRatio: _imageSize!.width / _imageSize!.height,
+                      // child: _buildPreview(),
+                      child: Image(image: _image!),
                     ),
                   ),
                 ),
               ),
-            if (_image != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 10,
-                ),
-                child: Align(
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      maxHeight: 500,
-                    ),
-                    child: SizedBox(width: 200, child: Image(image: _image!)),
-                  ),
-                ),
-              ),
-            if (_previewSize != null)
+            if (_imageSize != null)
               Center(
                 child: Text(
-                  'Preview size: ${_previewSize!.width.toStringAsFixed(0)}x${_previewSize!.height.toStringAsFixed(0)}',
+                  'Preview size: ${_imageSize!.width.toStringAsFixed(0)}x${_imageSize!.height.toStringAsFixed(0)}',
                 ),
               ),
             Wrap(

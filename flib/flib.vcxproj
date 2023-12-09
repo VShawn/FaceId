@@ -156,12 +156,14 @@ xcopy /Y "$(SolutionDir)Build\$(Platform)\$(Configuration)\$(ProjectName).dll" "
     <ClInclude Include="sources\interface.h" />
     <ClInclude Include="sources\loghelper.h" />
     <ClInclude Include="sources\ncnn_yolo5face.h" />
+    <ClInclude Include="sources\utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="sources\interface.cpp" />
     <ClCompile Include="sources\loghelper.cpp" />
     <ClCompile Include="sources\ncnn_yolo5face.cpp" />
+    <ClCompile Include="sources\utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

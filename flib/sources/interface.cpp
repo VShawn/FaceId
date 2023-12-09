@@ -1,7 +1,8 @@
 #include "head.h"
 #include <iostream>
 #include "loghelper.h"
-#include "./sources/ncnn_yolo5face.h"
+#include "ncnn_yolo5face.h"
+#include "utils.h"
 
 static YOLO5Face* g_ptr_yolo = nullptr;
 
@@ -106,6 +107,8 @@ API_EXPORT void FaceDetect(unsigned char* const p_data, const int width, const i
 }
 
 
+
+
 API_EXPORT void FaceDetectFile(const char* const filePath,
 	float* const x1,
 	float* const y1,
@@ -135,7 +138,20 @@ API_EXPORT void FaceDetectFile(const char* const filePath,
 
 	cv::Mat src = cv::imread(filePath);
 	LOG_DEBUG("src = %d, %d", src.cols, src.rows);
+	if (src.rows != g_ptr_yolo->input_height || src.cols != g_ptr_yolo->input_width)
+	{
+		float w_r = (float)g_ptr_yolo->input_width / (float)src.cols;
+		float h_r = (float)g_ptr_yolo->input_height / (float)src.rows;
+		float r = std::min(w_r, h_r);
+		int new_unpad_w = static_cast<int>((float)src.cols * r); // floor
+		int new_unpad_h = static_cast<int>((float)src.rows * r); // floor
+		cv::resize(src, src, cv::Size(new_unpad_w, new_unpad_h));
+		LOG_DEBUG("src resize -> %d, %d", src.cols, src.rows);
+	}
 	std::vector<BoxfWithLandmarks> detected_boxes = FaceDetectInner(src);
+	draw_boxes_with_landmarks_inplace(src, detected_boxes);
+	cv::imwrite(filePath, src);
+
 	int c = std::min((int)detected_boxes.size(), 100);
 	LOG_DEBUG("count = %d", c);
 	for (size_t i = 0; i < c; i++)

@@ -13,6 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_screen_lock: ^9.0.1
+  image_size_getter: ^2.1.2
   local_auth: ^2.1.7
   logger: ^2.0.2+1
   path: ^1.8.3

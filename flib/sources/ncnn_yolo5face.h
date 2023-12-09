@@ -218,11 +218,12 @@ public:
 		int _input_width = 640); //
 	~YOLO5Face();
 
+	const int input_height; // 640
+	const int input_width; // 640
+
 private:
 	const unsigned int num_threads; // initialize at runtime.
 	// target image size after resize
-	const int input_height; // 640
-	const int input_width; // 640
 
 	const float mean_vals[3] = { 0.f, 0.f, 0.f }; // RGB
 	const float norm_vals[3] = { 1.0f / 255.f, 1.0f / 255.f, 1.0f / 255.f };

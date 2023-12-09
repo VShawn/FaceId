@@ -22,6 +22,9 @@
     <ClInclude Include="sources\interface.h">
       <Filter>sources</Filter>
     </ClInclude>
+    <ClInclude Include="sources\utils.h">
+      <Filter>sources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="sources\loghelper.cpp">
@@ -32,6 +35,9 @@
     </ClCompile>
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="sources\interface.cpp">
+      <Filter>sources</Filter>
+    </ClCompile>
+    <ClCompile Include="sources\utils.cpp">
       <Filter>sources</Filter>
     </ClCompile>
   </ItemGroup>
