@@ -9,7 +9,6 @@ enum FaceDetectionMode {
 
 class FaceDetectController {
   Timer? _timer;
-  int _faceDetectionCount = 0;
   FaceDetectionMode _mode = FaceDetectionMode.normal;
 
   int _normalTimerCounter = 0;
@@ -23,9 +22,9 @@ class FaceDetectController {
         _normalTimerCounter++;
         if (_normalTimerCounter >= 5) {
           _normalTimerCounter = 0;
-          bool faceDetected = detectFace();
+          bool faceDetected = _detectFace();
           if (!faceDetected) {
-            LogW('未检测到人脸，进入快速模式');
+            logWarning('未检测到人脸，进入快速模式');
             _mode = FaceDetectionMode.fast;
           } else {
             LogD('检测到人脸');
@@ -34,11 +33,11 @@ class FaceDetectController {
         return;
       } else {
         _normalTimerCounter = 0;
-        bool faceDetected = detectFace();
+        bool faceDetected = _detectFace();
         if (!faceDetected) {
           _fastTimerCounter++;
           if (_fastTimerCounter >= 5) {
-            LogW('长时间未检测到人脸');
+            logWarning('长时间未检测到人脸');
             stopFaceDetection();
           }
         }
@@ -50,7 +49,7 @@ class FaceDetectController {
     _timer?.cancel();
   }
 
-  bool detectFace() {
+  bool _detectFace() {
     // TODO: 实现面部检测的逻辑
     return false;
   }

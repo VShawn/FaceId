@@ -8,26 +8,26 @@ var _logger = Logger(
   ),
 );
 
-LogV(String msg) {
-  _logger.v("$_tag :: $msg");
+logTrace(String msg) {
+  _logger.t("${DateTime.now().toString()} $_tag :: $msg");
 }
 
 LogD(String msg) {
-  _logger.d("$_tag :: $msg");
+  _logger.d("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-LogI(String msg) {
-  _logger.i("$_tag :: $msg");
+logInfo(String msg) {
+  _logger.i("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-LogW(String msg) {
-  _logger.w("$_tag :: $msg");
+logWarning(String msg) {
+  _logger.w("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-LogE(String msg) {
-  _logger.e("$_tag :: $msg");
+logError(String msg) {
+  _logger.e("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-LogWTF(String msg) {
-  _logger.wtf("$_tag :: $msg");
+logFatal(String msg) {
+  _logger.f("${DateTime.now().toString()} $_tag :: $msg");
 }

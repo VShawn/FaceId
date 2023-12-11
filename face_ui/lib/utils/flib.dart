@@ -80,7 +80,7 @@ class FaceLib {
         nativeApi = DynamicLibrary.open('$path/assets/flib.dll');
       }
     } catch (e) {
-      LOG.LogE(e.toString());
+      LOG.logError(e.toString());
       nativeApi = null;
     }
     _faceDetectFileC = nativeApi?.lookupFunction<Native_FaceDetectFile, FFI_FaceDetectFile>("FaceDetectFile");
@@ -90,7 +90,7 @@ class FaceLib {
   bool init() {
     LOG.LogD("init with modelPath: $modelPath");
     if (_faceDetectFileC == null) {
-      LOG.LogE("_initC is null, dll not loaded!");
+      LOG.logError("_initC is null, dll not loaded!");
       return false;
     }
 
@@ -100,7 +100,7 @@ class FaceLib {
       final initC = nativeApi?.lookupFunction<Native_Init, FFI_Init>("Init");
       result = initC!(pathC, modelSize);
     } catch (e) {
-      LOG.LogE(e.toString());
+      LOG.logError(e.toString());
     }
     calloc.free(pathC);
     return result == 0;
@@ -110,7 +110,7 @@ class FaceLib {
     // toNativeUtf8() 是由 ffi 库提供的API，调用该函数时会在 Native 中分配内存，因此使用完后也需要释放内存。也可以使用 calloc.free() 来释放由 malloc 分配的内存；
 
     if (_faceDetectFileC == null) {
-      LOG.LogE("faceDetectFileC is null, dll not loaded!");
+      LOG.logError("faceDetectFileC is null, dll not loaded!");
       return [];
     }
 

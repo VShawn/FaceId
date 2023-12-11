@@ -7,12 +7,14 @@ import 'dart:io';
 
 import 'package:face_locker/model/face_box.dart';
 import 'package:face_locker/view/camera_selector.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera_platform_interface/camera_platform_interface.dart';
 import 'package:image_size_getter/image_size_getter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:win32/win32.dart';
+import 'controller/camera_controller.dart';
 import 'utils/flib.dart';
 import 'package:face_locker/utils/log_util.dart' as LOG;
 
@@ -33,22 +35,20 @@ class _MyAppState extends State<MyApp> {
   String _cameraInfo = 'Unknown';
   List<CameraDescription> _cameras = <CameraDescription>[];
   CameraDescription? _selectedCamera;
-  int _cameraId = -1;
   bool _initialized = false;
   Size? _imageSize;
   List<FaceBox>? faces;
-  ResolutionPreset _resolutionPreset = ResolutionPreset.veryHigh;
-  StreamSubscription<CameraErrorEvent>? _errorStreamSubscription;
-  StreamSubscription<CameraClosingEvent>? _cameraClosingStreamSubscription;
+  ResolutionPreset _resolutionPreset = ResolutionPreset.medium;
   late Timer _timer;
   MemoryImage? _image;
+  CameraController? _cameraController;
 
   @override
   void initState() {
     super.initState();
     WidgetsFlutterBinding.ensureInitialized();
     selectCamera(null);
-    _timer = Timer.periodic(Duration(milliseconds: 1000 * 10), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 1000 * 10), (timer) {
       _takePicture();
     });
   }
@@ -56,10 +56,6 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     _disposeCurrentCamera();
-    _errorStreamSubscription?.cancel();
-    _errorStreamSubscription = null;
-    _cameraClosingStreamSubscription?.cancel();
-    _cameraClosingStreamSubscription = null;
     _timer.cancel();
     super.dispose();
   }
@@ -69,10 +65,12 @@ class _MyAppState extends State<MyApp> {
       final prefs = await SharedPreferences.getInstance();
       selectedName = prefs.getString('camera1');
     }
+
     String cameraInfo = "Unknown";
+
     List<CameraDescription> cameras = <CameraDescription>[];
     try {
-      cameras = await CameraPlatform.instance.availableCameras();
+      cameras = await CameraController.getCameras();
       if (cameras.isEmpty) {
         cameraInfo = 'No available cameras';
       }
@@ -80,107 +78,61 @@ class _MyAppState extends State<MyApp> {
       cameraInfo = 'Failed to get cameras: ${e.code}: ${e.message}';
     }
 
-    // 从 _cameras 中查找 name 和 selected.name 相同的相机的索引
-    if (cameras.isNotEmpty) {
-      int cameraIndex = 0;
-      if (selectedName != null) {
-        cameraIndex = cameras.indexWhere((element) => element.name == selectedName);
-      }
-      if (cameraIndex >= 0) {
-        if (selectedName == null || selectedName != _selectedCamera?.name) {
-          final prefs = await SharedPreferences.getInstance();
-          prefs.setString('camera1', cameras[cameraIndex].name);
-        }
-      }
-      // 如果查找成功则显示相机信息
-      if (cameraIndex >= 0) {
-        setState(() {
-          _cameras = cameras;
-          _selectedCamera = cameras[cameraIndex];
-          _cameraInfo = _selectedCamera!.getName;
-        });
-        return Future.value();
-      }
+    var camera = await CameraController.getCameraByName(selectedName!);
+    if (camera != null) {
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('camera1', camera.name);
+      setState(() {
+        _cameras = cameras;
+        _selectedCamera = camera;
+        _cameraInfo = camera.getName;
+      });
+    } else {
+      // 没有选择相机，或者选择的相机不在 _cameras 中，则显示未知相机信息
+      setState(() {
+        _cameras = cameras;
+        _selectedCamera = cameras.firstOrNull;
+        _cameraInfo = cameraInfo;
+      });
     }
-
-    // 没有选择相机，或者选择的相机不在 _cameras 中，则显示未知相机信息
-    setState(() {
-      _cameras = cameras;
-      _selectedCamera = null;
-      _cameraInfo = cameraInfo;
-    });
   }
 
   /// Initializes the camera on the device.
   Future<void> _initializeCamera() async {
-    assert(!_initialized);
+    _cameraController?.closeCamera();
+    if (_selectedCamera == null) return;
 
-    if (_cameras.isEmpty || _selectedCamera == null) {
-      return;
-    }
-    int cameraId = -1;
+    final cameraController = CameraController(_selectedCamera!);
     try {
-      cameraId = await CameraPlatform.instance.createCamera(
-        _selectedCamera!,
-        _resolutionPreset,
-        enableAudio: false,
-      );
-
-      unawaited(_errorStreamSubscription?.cancel());
-      _errorStreamSubscription = CameraPlatform.instance.onCameraError(cameraId).listen(_onCameraError);
-
-      unawaited(_cameraClosingStreamSubscription?.cancel());
-      _cameraClosingStreamSubscription = CameraPlatform.instance.onCameraClosing(cameraId).listen(_onCameraClosing);
-
-      final Future<CameraInitializedEvent> initialized = CameraPlatform.instance.onCameraInitialized(cameraId).first;
-
-      await CameraPlatform.instance.initializeCamera(
-        cameraId,
-      );
-
-      // final CameraInitializedEvent event = await initialized;
-      // _previewSize = Size(
-      //   event.previewWidth,
-      //   event.previewHeight,
-      // );
-
+      await cameraController.openCamera(_resolutionPreset, _onCameraError, _onCameraClosing);
+      _cameraController = cameraController;
       if (mounted) {
         setState(() {
           _initialized = true;
-          _cameraId = cameraId;
           _cameraInfo = 'Capturing camera: ${_selectedCamera!.name}';
         });
       }
-    } on CameraException catch (e) {
-      try {
-        if (cameraId >= 0) {
-          await CameraPlatform.instance.dispose(cameraId);
-        }
-      } on CameraException catch (e) {
-        debugPrint('Failed to dispose camera: ${e.code}: ${e.description}');
+    } catch (e) {
+      if (kDebugMode) {
+        print(e);
       }
-
-      // Reset state.
       if (mounted) {
         setState(() {
-          _initialized = false;
-          _cameraId = -1;
-          _imageSize = null;
-          _cameraInfo = 'Failed to initialize camera: ${e.code}: ${e.description}';
+          _initialized = true;
+          _cameraInfo = 'Capturing camera: ${e.toString()}';
         });
       }
     }
   }
 
   Future<void> _disposeCurrentCamera() async {
-    if (_cameraId >= 0 && _initialized) {
+    if (_cameraController?.isInitialized() == true) {
       try {
-        await CameraPlatform.instance.dispose(_cameraId);
-
+        await _cameraController?.closeCamera();
+        _cameraController = null;
         if (mounted) {
           setState(() {
             _initialized = false;
-            _cameraId = -1;
             _imageSize = null;
             _cameraInfo = 'Camera disposed';
           });
@@ -195,38 +147,43 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
-  Widget _buildPreview() {
-    return SizedBox(
-      width: 100,
-      height: 100,
-      child: CameraPlatform.instance.buildPreview(_cameraId),
-    );
-  }
+  // Widget _buildPreview() {
+  //   return SizedBox(
+  //     width: 100,
+  //     height: 100,
+  //     child: CameraPlatform.instance.buildPreview(_cameraId),
+  //   );
+  // }
 
   Future<void> _takePicture() async {
-    if (!_initialized) return;
+    if (_cameraController?.isInitialized() != true) {
+      LOG.LogD('Camera is not initialized');
+      return;
+    }
 
     // 读取摄像头图像，并显示到 _image
-    final XFile file = await CameraPlatform.instance.takePicture(_cameraId);
-    _showInSnackBar('Picture captured to: ${file.path}');
+    final path = await _cameraController!.captureImageToDisk();
 
-    var fs = FaceLib.getInstance().detectFaces(file.path);
+    _showInSnackBar('Picture captured to: $path');
+
+    var fs = FaceLib.getInstance().detectFaces(path);
     print(fs);
 
-    // 将 file 显示到界面上
-    final bytes = await file.readAsBytes();
+    // 将 path 读取为 bytes
+    File file = File(path);
+    final bytes = file.readAsBytesSync();
     final memoryImageSize = ImageSizeGetter.getSize(MemoryInput(bytes));
     final image = MemoryImage(bytes);
     setState(() {
-      _cameraInfo = 'Picture captured to: ${file.path}';
+      _cameraInfo = 'Picture captured to: $path';
       // _previewSize = const Size(100, 100);
       _image = image;
       _imageSize = Size(memoryImageSize.width, memoryImageSize.height);
       faces = fs;
     });
 
-    // 删除 file.path 路径指向的文件
-    final f = File(file.path);
+    // 删除 path 路径指向的文件
+    final f = File(path);
     if (f.existsSync()) {
       await f.delete();
     }
@@ -236,11 +193,10 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _resolutionPreset = newValue;
     });
-    if (_initialized && _cameraId >= 0) {
-      // Re-inits camera with new resolution preset.
-      await _disposeCurrentCamera();
-      await _initializeCamera();
-    }
+    if (_cameraController?.isInitialized() != true) return;
+    // Re-inits camera with new resolution preset.
+    await _disposeCurrentCamera();
+    await _initializeCamera();
   }
 
   void _onCameraError(CameraErrorEvent event) {
@@ -333,7 +289,7 @@ class _MyAppState extends State<MyApp> {
                 ],
               ),
             const SizedBox(height: 5),
-            if (_initialized && _cameraId > 0 && _imageSize != null && _image != null)
+            if (_cameraController?.isInitialized() == true && _imageSize != null && _image != null)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
