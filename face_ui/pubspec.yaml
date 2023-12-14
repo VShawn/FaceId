@@ -12,19 +12,26 @@ dependencies:
   ffi: ^2.1.0
   flutter:
     sdk: flutter
+  flutter_riverpod: ^2.4.9
   flutter_screen_lock: ^9.0.1
   image_size_getter: ^2.1.2
   local_auth: ^2.1.7
   logger: ^2.0.2+1
   path: ^1.8.3
   path_provider: ^2.1.1
+  riverpod_annotation: ^2.3.3
   shared_preferences: ^2.2.2
+  system_tray: ^2.0.3
   win32: ^5.0.9
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.1
+  riverpod_generator: ^2.3.9
+  build_runner: ^2.4.7
+  custom_lint: ^0.5.7
+  riverpod_lint: ^2.3.7
 
 flutter:
   uses-material-design: true
@@ -32,3 +39,5 @@ flutter:
     - assets/yolov5face-n-640x640.opt.bin
     - assets/yolov5face-n-640x640.opt.param
     - assets/flib.dll
+    - assets/images/flutter.png
+    - assets/images/notebook.ico

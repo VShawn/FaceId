@@ -5,26 +5,59 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:face_locker/controller/face_detect_controller.dart';
 import 'package:face_locker/model/face_box.dart';
 import 'package:face_locker/view/camera_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera_platform_interface/camera_platform_interface.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_size_getter/image_size_getter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:system_tray/system_tray.dart';
 import 'package:win32/win32.dart';
 import 'controller/camera_controller.dart';
 import 'utils/flib.dart';
 import 'package:face_locker/utils/log_util.dart' as LOG;
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  runApp(const ProviderScope(child: MyApp()));
+
+  String path = Platform.isWindows ? 'assets/images/notebook.ico' : 'assets/images/flutter.png';
+
+  final AppWindow appWindow = AppWindow();
+  final SystemTray systemTray = SystemTray();
+
+  // We first init the systray menu
+  await systemTray.initSystemTray(
+    title: "system tray",
+    iconPath: path,
+  );
+
+  // create context menu
+  final Menu menu = Menu();
+  await menu.buildFrom([
+    MenuItemLabel(label: 'Show', onClicked: (menuItem) => appWindow.show()),
+    MenuItemLabel(label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
+    MenuItemLabel(label: 'Exit', onClicked: (menuItem) => appWindow.close()),
+  ]);
+
+  // set context menu
+  await systemTray.setContextMenu(menu);
+
+  // handle system tray event
+  systemTray.registerSystemTrayEventHandler((eventName) {
+    debugPrint("eventName: $eventName");
+    if (eventName == kSystemTrayEventClick) {
+      Platform.isWindows ? appWindow.show() : systemTray.popUpContextMenu();
+    } else if (eventName == kSystemTrayEventRightClick) {
+      Platform.isWindows ? systemTray.popUpContextMenu() : appWindow.show();
+    }
+  });
 }
 
-/// Example app for Camera Windows plugin.
 class MyApp extends StatefulWidget {
-  /// Default Constructor
   const MyApp({super.key});
 
   @override
@@ -37,26 +70,21 @@ class _MyAppState extends State<MyApp> {
   CameraDescription? _selectedCamera;
   bool _initialized = false;
   Size? _imageSize;
-  List<FaceBox>? faces;
   ResolutionPreset _resolutionPreset = ResolutionPreset.medium;
-  late Timer _timer;
   MemoryImage? _image;
   CameraController? _cameraController;
+  final FaceDetectController _faceDetectController = FaceDetectController();
 
   @override
   void initState() {
     super.initState();
     WidgetsFlutterBinding.ensureInitialized();
     selectCamera(null);
-    _timer = Timer.periodic(const Duration(milliseconds: 1000 * 10), (timer) {
-      _takePicture();
-    });
   }
 
   @override
   void dispose() {
     _disposeCurrentCamera();
-    _timer.cancel();
     super.dispose();
   }
 
@@ -106,6 +134,8 @@ class _MyAppState extends State<MyApp> {
     try {
       await cameraController.openCamera(_resolutionPreset, _onCameraError, _onCameraClosing);
       _cameraController = cameraController;
+      _faceDetectController.setCameraController(cameraController);
+      _faceDetectController.startFaceDetection();
       if (mounted) {
         setState(() {
           _initialized = true;
@@ -130,6 +160,8 @@ class _MyAppState extends State<MyApp> {
       try {
         await _cameraController?.closeCamera();
         _cameraController = null;
+        _faceDetectController.setCameraController(null);
+        _faceDetectController.stopFaceDetection();
         if (mounted) {
           setState(() {
             _initialized = false;
@@ -163,11 +195,13 @@ class _MyAppState extends State<MyApp> {
 
     // 读取摄像头图像，并显示到 _image
     final path = await _cameraController!.captureImageToDisk();
+    await _faceDetectController.detectFace(path: path);
+    if (path == "") return;
 
     _showInSnackBar('Picture captured to: $path');
 
     var fs = FaceLib.getInstance().detectFaces(path);
-    print(fs);
+    LOG.LogD(fs);
 
     // 将 path 读取为 bytes
     File file = File(path);
@@ -179,7 +213,6 @@ class _MyAppState extends State<MyApp> {
       // _previewSize = const Size(100, 100);
       _image = image;
       _imageSize = Size(memoryImageSize.width, memoryImageSize.height);
-      faces = fs;
     });
 
     // 删除 path 路径指向的文件
@@ -299,7 +332,6 @@ class _MyAppState extends State<MyApp> {
                     width: 400,
                     child: AspectRatio(
                       aspectRatio: _imageSize!.width / _imageSize!.height,
-                      // child: _buildPreview(),
                       child: Image(image: _image!),
                     ),
                   ),

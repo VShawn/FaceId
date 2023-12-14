@@ -7,6 +7,7 @@ class FaceBox {
 
   double get width => x2 - x1;
   double get height => y2 - y1;
+  double get area => width * height;
 
   final double eye1X;
   final double eye1Y;
@@ -45,6 +46,6 @@ class FaceBox {
   // 实现打印方法
   @override
   String toString() {
-    return 'FaceResult{x1: $x1, y1: $y1, x2: $x2, y2: $y2, eye1X: $eye1X, eye1Y: $eye1Y, eye2X: $eye2X, eye2Y: $eye2Y, noseX: $noseX, noseY: $noseY, mouth1X: $mouth1X, mouth1Y: $mouth1Y, mouth2X: $mouth2X, mouth2Y: $mouth2Y, faceId: $faceId}';
+    return 'FaceResult{x1: $x1, y1: $y1, x2: $x2, y2: $y2, faceId: $faceId},  width = $width, height = $height, area = $area';
   }
 }

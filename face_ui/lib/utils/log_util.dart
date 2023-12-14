@@ -8,26 +8,26 @@ var _logger = Logger(
   ),
 );
 
-logTrace(String msg) {
+logTrace(dynamic msg) {
   _logger.t("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-LogD(String msg) {
+LogD(dynamic msg) {
   _logger.d("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-logInfo(String msg) {
+logInfo(dynamic msg) {
   _logger.i("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-logWarning(String msg) {
+logWarning(dynamic msg) {
   _logger.w("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-logError(String msg) {
+logError(dynamic msg) {
   _logger.e("${DateTime.now().toString()} $_tag :: $msg");
 }
 
-logFatal(String msg) {
+logFatal(dynamic msg) {
   _logger.f("${DateTime.now().toString()} $_tag :: $msg");
 }

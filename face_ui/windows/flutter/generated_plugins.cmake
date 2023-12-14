@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   camera_windows
   local_auth_windows
+  system_tray
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
