@@ -38,13 +38,8 @@ void draw_boxes_with_landmarks_inplace(cv::Mat& mat_inplace,
 	}
 }
 
-int main()
+void Run(std::string in, std::string out, bool show = false)
 {
-	std::string test_img_path = "1.jpg";
-	std::string save_img_path = "2.jpg";
-
-	Init("yolov5face-n-640x640.opt.bin", 320);
-
 	float x1[100];
 	float y1[100];
 	float x2[100];
@@ -61,7 +56,7 @@ int main()
 	float f5y[100];
 	int count = 0;
 
-	cv::Mat img_bgr = cv::imread(test_img_path);
+	cv::Mat img_bgr = cv::imread(in);
 	//uchar* arr = img_bgr.isContinuous() ? img_bgr.data : img_bgr.clone().data;
 	//uint length = img_bgr.total() * img_bgr.channels();
 	//FaceDetect(arr, img_bgr.size().width, img_bgr.size().height, true,
@@ -75,7 +70,7 @@ int main()
 	//	&count);
 
 
-	FaceDetectFile(test_img_path.c_str(),
+	FaceDetectFile(in.c_str(),
 		x1, y1,
 		x2, y2,
 		f1x, f1y,
@@ -96,7 +91,43 @@ int main()
 		f4x, f4y,
 		f5x, f5y,
 		count);
-	//cv::imshow("test", img_bgr);
-	//cv::waitKey(0);
-	cv::imwrite(save_img_path, img_bgr);
+	if (show)
+	{
+		cv::imshow("test", img_bgr);
+		cv::waitKey(0);
+	}
+	cv::imwrite(out, img_bgr);
+}
+
+
+int main()
+{
+	std::string test_img_path = "1.jpg";
+	std::string save_img_path = "2.jpg";
+
+	Init("yolov5face-n-640x640.opt.bin", 320);
+	Run(test_img_path, save_img_path);
+
+	while (true)
+	{
+		// 输入 0 释放
+		// 输入路径 Run
+		// 输入 1 退出
+		std::cout << "输入 0 释放, 输入路径 Run, 输入 1 退出" << std::endl;
+
+		std::string input;
+		std::cin >> input;
+		if (input == "0")
+		{
+			Release();
+		}
+		else if (input == "1")
+		{
+			break;
+		}
+		else
+		{
+			Run(input, save_img_path, true);
+		}
+	}
 }

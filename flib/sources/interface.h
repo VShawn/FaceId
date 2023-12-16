@@ -13,6 +13,7 @@
 #endif
 
 API_EXPORT int Init(const char* const filePath, int size);
+API_EXPORT void Release();
 
 API_IMPORT void FaceDetect(unsigned char* const p_data, const int width, const int height, bool isBgr,
 	float* const x1,

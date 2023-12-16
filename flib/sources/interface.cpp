@@ -26,11 +26,22 @@ static bool InitNcnn(std::string path, int size)
 	LOG_DEBUG("YOLO5Face INIT END");
 }
 
+static void ReleaseNcnn()
+{
+	if (g_ptr_yolo != nullptr)
+		delete g_ptr_yolo;
+}
+
 // 初始化，返回成功失败，输入模型路径和检测尺寸
 API_EXPORT int Init(const char* const filePath, int size)
 {
 	log_helper::log.init("cpp.log", log_helper::enum_level::debug);
 	return InitNcnn(std::string(filePath), size);
+}
+
+API_EXPORT void Release()
+{
+	ReleaseNcnn();
 }
 
 std::vector<BoxfWithLandmarks> FaceDetectInner(cv::Mat img)

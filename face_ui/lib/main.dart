@@ -5,9 +5,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:face_locker/controller/face_detect_controller.dart';
-import 'package:face_locker/model/face_box.dart';
-import 'package:face_locker/view/camera_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -19,14 +16,19 @@ import 'package:system_tray/system_tray.dart';
 import 'package:win32/win32.dart';
 import 'controller/camera_controller.dart';
 import 'utils/flib.dart';
+
+import 'package:face_locker/controller/face_detect_controller.dart';
+import 'package:face_locker/view/camera_selector.dart';
 import 'package:face_locker/utils/log_util.dart' as LOG;
+import 'package:face_locker/backgound.dart';
 
 void main() async {
-  runApp(const ProviderScope(child: MyApp()));
-
   String path = Platform.isWindows ? 'assets/images/notebook.ico' : 'assets/images/flutter.png';
 
-  final AppWindow appWindow = AppWindow();
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const ProviderScope(child: MyApp()));
+  AppWindow appWindow = AppWindow();
+
   final SystemTray systemTray = SystemTray();
 
   // We first init the systray menu
@@ -35,10 +37,22 @@ void main() async {
     iconPath: path,
   );
 
+  final bg = BackgroundWorker();
+
   // create context menu
   final Menu menu = Menu();
   await menu.buildFrom([
-    MenuItemLabel(label: 'Show', onClicked: (menuItem) => appWindow.show()),
+    MenuItemLabel(
+        label: 'Show',
+        onClicked: (menuItem) {
+          appWindow.show();
+        }),
+    MenuItemLabel(
+        label: 'ShowBlank',
+        onClicked: (menuItem) {
+          // appWindow.show();
+          bg.sendToMe("test");
+        }),
     MenuItemLabel(label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
     MenuItemLabel(label: 'Exit', onClicked: (menuItem) => appWindow.close()),
   ]);
@@ -55,6 +69,16 @@ void main() async {
       Platform.isWindows ? systemTray.popUpContextMenu() : appWindow.show();
     }
   });
+
+  bg.createIsolate();
+}
+
+class BlankMain extends StatelessWidget {
+  const BlankMain({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Container();
+  }
 }
 
 class MyApp extends StatefulWidget {
